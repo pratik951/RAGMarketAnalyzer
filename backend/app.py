@@ -23,6 +23,9 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s %(levelname)s %(message)s")
 
+# Enable debug mode
+DEBUG = True
+
 # Log current working directory and directory listing
 logging.info("Current Working Directory: %s", os.getcwd())
 logging.info("Directory Listing: %s", os.listdir(os.getcwd()))
@@ -227,4 +230,4 @@ async def compare(request: CompareRequest):
 if __name__ == "__main__":
     import uvicorn
     print("Starting app with OpenAI API Key:", openai.api_key)
-    uvicorn.run(app, host="0.0.0.0", port=8000, debug=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, debug=DEBUG)
