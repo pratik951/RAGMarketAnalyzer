@@ -1,7 +1,7 @@
 fastapi
 uvicorn
 python-dotenv
-openai
+pip install openai==0.28.0
 pdfplumber
 pydantic
 transformers
