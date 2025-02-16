@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>RAG-Powered Market Research Analysis</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      body {
+        font-family: 'Roboto', sans-serif;
+        background-color: #f0f2f5;
+      }
+      .navbar, footer {
+        background-color: #343a40;
+      }
+      .navbar a, footer a {
+        color: #fff;
+      }
+      .header {
+        background-color: #343a40;
+        color: #fff;
+        padding: 20px 0;
+        text-align: center;
+      }
+      .chat-area, .output-area {
+        margin-bottom: 20px;
+      }
+      .chat-area textarea {
+        resize: none;
+      }
+      .spinner-border {
+        width: 3rem;
+        height: 3rem;
+      }
+      #loading {
+        display: none;
+        text-align: center;
+        margin-top: 20px;
+      }
+      .result-card, .sources-card {
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        border: none;
+        margin-bottom: 20px;
+      }
+      .card-header {
+        font-weight: 700;
+      }
+      @media (max-width: 768px) {
+        .row {
+          flex-direction: column;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <a class="navbar-brand" href="#">RAG Analysis</a>
+      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav"
+              aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarNav">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item"><a class="nav-link" href="#">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">About</a></li>
+          <li class="nav-item"><a class="nav-link" href="#">Contact</a></li>
+        </ul>
+      </div>
+    </nav>
+
+    <div class="header">
+      <h1>RAG-Powered Market Research Analysis</h1>
+    </div>
+
+    <div class="container mt-4">
+      <div class="row">
+        <!-- Chat Area -->
+        <div class="col-md-6">
+          <div class="card chat-area">
+            <div class="card-header bg-primary text-white">
+              Chat with Market Analyzer
+            </div>
+            <div class="card-body">
+              <form id="chatForm">
+                <div class="form-group">
+                  <textarea id="query" class="form-control" placeholder="Enter your query here..." rows="4"></textarea>
+                </div>
+                <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Submit Query</button>
+              </form>
+              <!-- Loading Spinner -->
+              <div id="loading">
+                <div class="spinner-border text-primary" role="status">
+                  <span class="sr-only">Loading...</span>
+                </div>
+              </div>
+              <div id="chatHistory" class="chat-history mt-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Output Area -->
+        <div class="col-md-6 output-area">
+          <div class="row">
+            <!-- Answer Section -->
+            <div class="col-md-12">
+              <div class="card result-card">
+                <div class="card-header bg-info text-white">
+                  Answer
+                </div>
+                <div class="card-body">
+                  <div id="result" class="alert alert-info" style="display:none;"></div>
+                </div>
+              </div>
+            </div>
+            <!-- Sources Section -->
+            <div class="col-md-12">
+              <div class="card sources-card">
+                <div class="card-header bg-secondary text-white">
+                  Source Sentences
+                </div>
+                <div class="card-body">
+                  <div id="sourceList" class="alert alert-secondary" style="display:none;"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- Optional Chart Area -->
+          <div class="row">
+            <div class="col-md-12">
+              <canvas id="insightChart" style="display:none; margin-top:20px;"></canvas>
+            </div>
+          </div>
+          <div id="sentiment"></div>
+          <div id="topics"></div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-4">
+      <div class="container">
+        <p>&copy; 2025 RAG Analysis. All rights reserved.</p>
+        <p>Contact Me: <a href="mailto:pratikkoli951@gmail.com">Pratik Koli</a></p>
+      </div>
+    </footer>
+
+    <!-- jQuery, Bootstrap JS, and Chart.js -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+      document.getElementById("chatForm").addEventListener("submit", function(event) {
+        event.preventDefault();
+        var queryInput = document.getElementById("query");
+        var queryText = queryInput.value.trim();
+
+        // If query is empty, do nothing.
+        if (!queryText) return;
+
+        // Clear the input for new text
+        queryInput.value = "";
+
+        // Append the user's query to the chat history
+        var chatHistory = document.getElementById("chatHistory");
+        chatHistory.innerHTML += "<div class='chat-message user mb-2'><strong>You:</strong> " + queryText + "</div>";
+
+        // Show the loading spinner and disable the submit button
+        document.getElementById("loading").style.display = "block";
+        document.getElementById("submitBtn").disabled = true;
+
+        fetch("/api/query", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query: queryText })
+        })
+        .then(response => response.json())
+        .then(data => {
+          // Hide loading spinner and re-enable the submit button
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("submitBtn").disabled = false;
+
+          var resultDiv = document.getElementById("result");
+          var sourceListDiv = document.getElementById("sourceList");
+
+          if (data.error) {
+            resultDiv.style.display = "block";
+            resultDiv.innerHTML = "<strong>Error:</strong> " + data.error;
+            chatHistory.innerHTML += "<div class='chat-message bot mb-2'><strong>Error:</strong> " + data.error + "</div>";
+            return;
+          }
+
+          // Display the answer in the Answer section
+          resultDiv.style.display = "block";
+          resultDiv.innerHTML = "<strong>Answer:</strong> " + data.answer;
+
+          // Display the source sentences in the Sources section
+          if (data.sources && data.sources.length > 0) {
+            sourceListDiv.style.display = "block";
+            sourceListDiv.innerHTML = "<strong>Sources:</strong><ul>" +
+              data.sources.map(src => "<li>" + src + "</li>").join("") + "</ul>";
+          } else {
+            sourceListDiv.style.display = "block";
+            sourceListDiv.innerHTML = "<strong>Sources:</strong> No source sentences provided.";
+          }
+
+          chatHistory.innerHTML += "<div class='chat-message bot mb-2'><strong>Analyzer:</strong> Answer provided.</div>";
+
+          // Optionally display a chart if provided in the response
+          if (data.insightChartData) {
+            var ctx = document.getElementById('insightChart').getContext('2d');
+            var chart = new Chart(ctx, {
+              type: 'bar',
+              data: {
+                labels: data.insightChartData.labels,
+                datasets: [{
+                  label: 'Insights',
+                  data: data.insightChartData.data,
+                  backgroundColor: 'rgba(0, 123, 255, 0.5)',
+                  borderColor: 'rgba(0, 123, 255, 1)',
+                  borderWidth: 1
+                }]
+              },
+              options: { responsive: true, scales: { y: { beginAtZero: true } } }
+            });
+            document.getElementById('insightChart').style.display = 'block';
+          }
+        })
+        .catch(error => {
+          document.getElementById("loading").style.display = "none";
+          document.getElementById("submitBtn").disabled = false;
+          var resultDiv = document.getElementById("result");
+          resultDiv.style.display = "block";
+          resultDiv.innerText = "Error: " + error;
+          chatHistory.innerHTML += "<div class='chat-message bot mb-2'><strong>Error:</strong> " + error + "</div>";
+        });
+      });
+    </script>
+  </body>
+</html>
