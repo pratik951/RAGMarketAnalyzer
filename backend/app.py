@@ -35,41 +35,42 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Function to extract text from a PDF file
+# Function to extract text from a PDF file lazily
 def extract_pdf_text(filepath):
-    text = ""
     try:
         with pdfplumber.open(filepath) as pdf:
             for idx, page in enumerate(pdf.pages, start=1):
                 page_text = page.extract_text()
                 if page_text:
-                    text += page_text
+                    yield page_text
                 else:
                     warning_msg = f"No text extracted from page {idx} in {filepath}"
                     logging.warning(warning_msg)
-                    text += f"\n[No text found on page {idx}]"
+                    yield f"\n[No text found on page {idx}]"
     except Exception as e:
         error_msg = f"Error reading {filepath}: {e}"
         logging.error(error_msg)
-        text += "\n" + error_msg
-    return text
+        yield "\n" + error_msg
 
 # Update base_path to point to the "resources" folder
 base_path = os.path.join(os.path.dirname(__file__), "resources")
 base_path1 = os.path.join(os.path.dirname(__file__))
-# Load the output from output.txt (the ChatGPT knowledge base)
-try:
-    with open(os.path.join(base_path, "output.txt"), 'r', encoding='utf-8') as f:
-        pdf_knowledge = f.read()
-except Exception as e:
-    logging.error(f"Error reading output.txt: {e}")
-    pdf_knowledge = "No extracted knowledge available"
+# Load the output from output.txt (the ChatGPT knowledge base) lazily
+def load_pdf_knowledge():
+    try:
+        with open(os.path.join(base_path, "output.txt"), 'r', encoding='utf-8') as f:
+            for line in f:
+                yield line.strip()
+    except Exception as e:
+        logging.error(f"Error reading output.txt: {e}")
+        yield "No extracted knowledge available"
 
 # Set your OpenAI API key from an environment variable
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize RAG with the knowledge base and OpenAI API key
-rag = RAG(pdf_knowledge.split('\n'), openai.api_key)
+pdf_knowledge = list(load_pdf_knowledge())
+rag = RAG(pdf_knowledge, openai.api_key)
 
 # Initialize sentiment analysis and topic modeling pipelines
 sentiment_analyzer = pipeline("sentiment-analysis")
@@ -138,6 +139,10 @@ async def query(request: QueryRequest):
         # Perform topic modeling on the answer text
         topics = topic_modeler(answer_text, candidate_labels=["finance", "strategy", "operations", "sustainability"])
 
+        # Free up memory
+        del retrieved_knowledge
+        del truncated_pdf_knowledge
+
         return JSONResponse(content={
             "status": "success",
             "answer": answer_text,
@@ -193,6 +198,10 @@ async def compare(request: CompareRequest):
         else:
             comparison_text = result
             sources_list = []
+
+        # Free up memory
+        del report1
+        del report2
 
         return JSONResponse(content={
             "status": "success",
