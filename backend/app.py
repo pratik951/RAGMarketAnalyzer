@@ -20,6 +20,16 @@ from transformers import pipeline
 # Load environment variables
 load_dotenv()
 
+# Verify that the API key is loaded correctly
+api_key = os.getenv("OPENAI_API_KEY")
+if not api_key:
+    logging.error("OpenAI API key not found. Please check your .env file.")
+else:
+    logging.info("OpenAI API key loaded successfully.")
+
+# Set your OpenAI API key from an environment variable
+openai.api_key = api_key
+
 # Configure logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -71,9 +81,6 @@ def load_pdf_knowledge():
     except Exception as e:
         logging.error(f"Error reading output.txt: {e}")
         yield "No extracted knowledge available"
-
-# Set your OpenAI API key from an environment variable
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
 # Initialize RAG with the knowledge base and OpenAI API key
 pdf_knowledge = list(load_pdf_knowledge())
@@ -164,6 +171,10 @@ async def query(request: QueryRequest):
             "topics": topics,
             "source": "ChatGPT"
         })
+    except openai.error.AuthenticationError as e:
+        error_msg = "Authentication error: Incorrect API key provided. Please check your API key."
+        logging.error(error_msg + f" Details: {e}")
+        raise HTTPException(status_code=401, detail=error_msg)
     except openai.error.RateLimitError as e:
         error_msg = ("Rate limit error: You exceeded your current quota. "
                      "Please check your OpenAI account plan, billing details, and consult https://platform.openai.com/docs/guides/error-codes/api-errors.")
