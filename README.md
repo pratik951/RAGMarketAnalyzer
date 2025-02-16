@@ -51,10 +51,5 @@ project-root/
 - **Sentiment Analysis:** Provides sentiment analysis of the AI-generated insights.
 - **Topic Modeling:** Identifies and displays topics related to the AI-generated insights.
 
-## Future Enhancements
-- Integrate a real RAG system using vector embeddings and semantic search.
-- Enhance the UI/UX with improved interactivity and data visualizations.
-- Implement advanced error handling and loading state management in the frontend.
-- Extend the functionality with additional AI features such as sentiment analysis and topic modeling.
 
 
