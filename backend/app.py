@@ -1,4 +1,9 @@
+import sys
 import os
+
+# Add the parent directory to the Python path
+sys.path.append(os.path.dirname(os.path.dirname(__file__)))
+
 import re
 import json
 import logging
@@ -9,7 +14,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pdfplumber
 from pydantic import BaseModel
-from rag import RAG  # Import the RAG class
+from backend.rag import RAG  # Import the RAG class
 from transformers import pipeline
 
 # Load environment variables
