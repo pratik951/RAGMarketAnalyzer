@@ -5,3 +5,6 @@ openai
 pdfplumber
 pydantic
 transformers
+sentence-transformers
+faiss-cpu
+torch
