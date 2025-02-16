@@ -7,3 +7,5 @@ sentence-transformers
 faiss-cpu
 transformers
 torch
+pytesseract
+pdf2image
