@@ -23,6 +23,10 @@ load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.ERROR, format="%(asctime)s %(levelname)s %(message)s")
 
+# Log current working directory and directory listing
+logging.info("Current Working Directory: %s", os.getcwd())
+logging.info("Directory Listing: %s", os.listdir(os.getcwd()))
+
 # Initialize FastAPI app
 app = FastAPI()
 
@@ -87,8 +91,14 @@ class CompareRequest(BaseModel):
 # Root endpoint (for testing)
 @app.get("/", response_class=HTMLResponse)
 async def index():
-    with open("C:/Users/prati/Desktop/RAGING/frontend/index.html", "r", encoding="utf-8") as f:
-        return f.read()
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    index_path = os.path.join(base_dir, "../frontend/index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return f.read()
+    else:
+        logging.error("index.html not found at %s", index_path)
+        raise HTTPException(status_code=404, detail="index.html not found")
 
 # Query endpoint with prompt engineering and JSON extraction via regex
 @app.post("/api/query", response_class=JSONResponse)
